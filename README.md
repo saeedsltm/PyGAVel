@@ -25,5 +25,5 @@ Usage [objective function = Hypoellipse]:
 Hints:
 
 - I suggest you to create a directory and put the "hypoell-loc.sh", "hymain" and "fwd_problem.sh" into it. Add this directory's path to the PATH variable.
-- Set "GENSIZE" and "POPSIZE" in "par.dat" not less than 150 to get more reliable results.
+- Set "GENSIZE" and "POPSIZE" parameters in "par.dat" file, not smaller than 150 to get more reliable results.
 - take a look at "Pyevolve" documentation using the following address, to get more familiar with GA algorithm and how it works.
