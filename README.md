@@ -3,7 +3,7 @@ Module for estimating 1D Velocity Model using Genetic Algorithm.
 
 Summary:
 
-Using this module you can calculate 1D velocity model. The method is based on Genetic Algorithm (GA) for finding the best model from the solution space. There are two objective function (Hypoellipse, Hypo71) that you can choose according to your dataset and so on. 
+Using this module you can calculate 1D velocity model. The method is based on Genetic Algorithm (GA) for finding the best model from the solution space. There are two objective functions (Hypoellipse, Hypo71) that you can choose according to your dataset and so on. 
 
 Requirements:
 
