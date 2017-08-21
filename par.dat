@@ -1,0 +1,41 @@
+#
+#
+# INPUT FILE PARAMETER FOR 'Pyevolve' PACKAGE.
+#
+###################
+#
+SYNTHETIC_F        = True # Synthetic test enalbe/disable.
+REAL_MODEL_V       = 4.50, 5.20, 5.50, 5.80, 6.50
+REAL_MODEL_D       = 0.00, 4.00, 8.00,12.00,18.00
+REAL_MODEL_R       = 1.83, 1.80, 1.75, 1.70, 1.70
+#
+MODEL_VEL_MIN      = 4.00, 4.00, 4.00, 4.00, 4.00, 4.00, 4.00, 4.00, 4.00, 4.00
+MODEL_VEL_MAX      = 7.00, 7.00, 7.00, 7.00, 7.00, 7.00, 7.00, 7.00, 7.00, 7.00
+MODEL_DEP_MIN      = 0.00, 2.00, 4.00, 6.00, 8.00,10.00,12.00,14.00,16.00,18.00
+MODEL_DEP_MAX      = 0.00, 2.00, 4.00, 6.00, 8.00,10.00,12.00,14.00,16.00,18.00
+MODEL_VPS_MIN      = 1.83, 1.83, 1.80, 1.80, 1.75, 1.75, 1.70, 1.70, 1.70, 1.70
+MODEL_VPS_MAX      = 1.83, 1.83, 1.80, 1.80, 1.75, 1.75, 1.70, 1.70, 1.70, 1.70
+#MODEL_VEL_MIN      = 4.00, 4.70, 5.00, 5.25, 5.60
+#MODEL_VEL_MAX      = 5.00, 5.70, 6.00, 6.25, 6.60
+#MODEL_DEP_MIN      = 0.00, 6.00,10.00,14.00,20.00
+#MODEL_DEP_MAX      = 0.00, 2.00, 6.00,10.00,16.00
+#MODEL_VPS_MIN      = 1.83, 1.80, 1.75, 1.70, 1.70
+#MODEL_VPS_MAX      = 1.83, 1.80, 1.75, 1.70, 1.70
+#
+GENSIZE            = 200
+POPSIZE            = 150
+MUT_R              = 0.10
+MUT_R_V            = 0.00 # Mutation decreasing rate. Different "MUT_R" for each generation. MUT_R=exp(-MUT_R_V*range(GENSIZE)). "0" = Disable.
+CRO_R              = 0.90
+NUM_ELTSM          = 1
+SEED               = 101
+NUM_CPU            = 4    # Set 0 to disable it.
+OBJ_FUNC           = 2    # 1: Hypo71, 2: Hypoelipse. Note to use POS_GRAD_V=True if Hypo71 is selected.
+POS_GRAD_V         = True
+DBASE              = noisy_vpvs_1
+RESET_DB           = True
+GA_SELECTOR        = T    # T:Turnoment, R:RouletWhell, N:Rank, M: T(75%)+ R(20%) and N(5%).
+#
+PLT_VP_RNG         = 3.00, 8.00
+PLT_DP_RNG         = 0.00, 25.0
+PLT_R_RNG          = 1.65, 1.85
