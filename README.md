@@ -18,7 +18,7 @@ Usage [objective function = Hypoellipse]:
 
 - Copy the module "PyGAVel.py" in a working directory.
 - Copy "hypoell-loc.sh", "default.cfg", "hypoel.pha", "hypoel.prm", "hypoel.sta" and "fwd_problem.sh" files into working directory.
-- The "hymain" is a executable of Hypoeelipse, has been compiled for Linux64x. You can use it in case you have problem with compiling the source code.
+- The executable file "hymain" is pre-compiled for Linux64x. You can use it in case you have problem with compiling the source code.
 - Copy "par.dat" into working directory and make changes in parameters if needed.
 - Run the module.
 
