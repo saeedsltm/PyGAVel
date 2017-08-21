@@ -16,7 +16,7 @@ Requirements:
 
 Usage [objective function = Hypoellipse]:
 
-- Copy the module "PyGAVel.py" in a working directory
+- Copy the module "PyGAVel.py" in a working directory.
 - Copy "hypoell-loc.sh", "default.cfg", "hypoel.pha", "hypoel.prm", "hypoel.sta" and "fwd_problem.sh" files into working directory.
 - Copy "par.dat" into working directory and make changes in parameters if needed.
 - Run the module.
