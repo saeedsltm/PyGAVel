@@ -55,7 +55,7 @@ def hist_depth():
 
     init_plotting()
 
-    ax   = plt.subplot(221)
+    ax   = plt.subplot(111)
     bins = arange(min(dep), max(dep) + 1, 1)
     ax.hist(dep,bins=bins,orientation="horizontal",color='r',alpha=.7)
     ax.set_xlabel('Number of Events [#]')
@@ -64,13 +64,13 @@ def hist_depth():
     plt.show()
     plt.close()
 
-hist_depth()
-
-ans = raw_input('\n+++ Press "Enter" to continue, "q" for quit.\n')
-
-if ans == 'q':
-
-    sys.exit(0)
+##hist_depth()
+##
+##ans = raw_input('\n+++ Press "Enter" to continue, "q" for quit.\n')
+##
+##if ans == 'q':
+##
+##    sys.exit(0)
     
 #________________WRITE MODELS INTO DB
 
@@ -296,8 +296,7 @@ def write_res(dbase_name, flag, best_rs, best_v, best_d, best_r):
 
 def plot(best, best_rs, best_v, best_d, best_r):
 
-    fig = plt.figure()
-    fig.set_tight_layout(True)
+    init_plotting()
 
     #___________________Plot final results
     #
@@ -318,7 +317,7 @@ def plot(best, best_rs, best_v, best_d, best_r):
         colors    = ['r','k','g']
         labels    = ['Min', 'Max', 'Best']
 
-    ax1 = plt.subplot(121)
+    ax1 = plt.subplot(221)
 
     for v,d,c,l in zip(vel_list, dep_list, colors, labels):
      
@@ -353,7 +352,7 @@ def plot(best, best_rs, best_v, best_d, best_r):
     ax1.grid()
     ax1.legend(loc=3)
 
-    ax2 = plt.subplot(122)
+    ax2 = plt.subplot(224)
 
     for r,d,c,l in zip(vpvs_list, dep_list, colors, labels):
      
@@ -388,14 +387,13 @@ def plot(best, best_rs, best_v, best_d, best_r):
     ax2.grid()
     ax2.legend(loc=2)
 
+    plt.tight_layout()
     plt.savefig(dbase_name+'.png')
     plt.close()
 
 
     #__________StdDev (V,D,R)
-    import matplotlib.mlab as mlab
-
-
+    
     models    = loadtxt('models.dat')
     model_std = std(models,axis=0)[0]
     model_men = mean(models,axis=0)[0]
@@ -407,16 +405,22 @@ def plot(best, best_rs, best_v, best_d, best_r):
     for par in range(models.shape[1]):
 
         ax = plt.subplot(tot_ax,4,par+1)
+        #ax.set_title('par=%d'%par, fontsize=14)
+        ax.text(0.97, 0.82, 'par=%d'%(par+1), fontsize=12,
+                transform=ax.transAxes, bbox={'facecolor':'w', 'alpha':0.5, 'pad':2},
+                horizontalalignment='right', verticalalignment='top')
 
         mu    = mean(models[:,par])
         sig   = std(models[:,par])
         x     = linspace(mu-3*sig,mu+3*sig, 100)
-        a,b,c = plt.hist(models[:,par],50,alpha=.6)
-        y     = mlab.normpdf( b, mu, sig)
-        plt.plot(b, y, 'r--', linewidth=2)
+        a,b,c = plt.hist(models[:,par], 50, alpha=.6)
         plt.vlines(best[par],0,max(a),color='r',zorder=20,linewidth=2)
         plt.vlines(mu,0,max(a),color='y',zorder=20,linewidth=2)
+        plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+        plt.locator_params(axis = 'x', nbins = 4)
+        plt.locator_params(axis = 'y', nbins = 4)
 
+    plt.tight_layout()
     plt.savefig('models_stat.png')
     plt.close()
 
