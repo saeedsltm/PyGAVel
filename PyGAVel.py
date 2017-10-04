@@ -10,8 +10,8 @@ from pyevolve import GAllele
 from pyevolve import Consts
 from pyevolve import DBAdapters
 from pyevolve import Scaling
-from numpy import genfromtxt, array, arange, linalg, exp, diff, concatenate
-from numpy import where, round as rnd, savetxt, loadtxt, std, mean, linspace, ceil
+from numpy import genfromtxt, array, arange, linalg, exp, diff, concatenate, round_
+from numpy import where, round as rnd, savetxt, loadtxt, std, mean, linspace, ceil, min, max
 from scipy.stats import norm
 from commands import getstatusoutput as gso
 from string import ascii_letters, digits
@@ -20,11 +20,12 @@ from glob import glob
 import pylab as plt
 import os
 import sys
-from initial_mpl import init_plotting
-from PyHypo71 import run_hyp71
+from initial_mpl import init_plotting_isi
+from PyHyp71 import run_hyp71
 
 """
-Script for calculating 1D-velocity model using GA algorythm.
+
+Script for calculating 1D-velocity model using GA algorithm.
 
 Note:
 
@@ -33,44 +34,10 @@ Using Hypo71 as an objective function still is in progress.
 ChangeLogs:
 
 07-Aug-2017 > Initial.
+23-Aug-2017 > Set depth to 0/.5 decimal values.
+02-Oct-217  > Fixed some issues in eval_func(), removed "23-Aug-2017" change, fixed issues for plotting.
 
 """
-
-#________________PLOT DATA
-
-def hist_depth():
-
-    if not os.path.exists('hypoel.sum'):
-
-        print '\n\n+++ No "hypoel.sum" was found!'
-        sys.exit(0)
-
-    dep = []
-
-    with open('hypoel.sum') as f:
-
-        for l in f:
-
-            dep.append(-float(l[31:36])*1e-2)
-
-    init_plotting()
-
-    ax   = plt.subplot(111)
-    bins = arange(min(dep), max(dep) + 1, 1)
-    ax.hist(dep,bins=bins,orientation="horizontal",color='r',alpha=.7)
-    ax.set_xlabel('Number of Events [#]')
-    ax.set_ylabel('Depth [km]')
-    ax.grid(True)
-    plt.show()
-    plt.close()
-
-##hist_depth()
-##
-##ans = raw_input('\n+++ Press "Enter" to continue, "q" for quit.\n')
-##
-##if ans == 'q':
-##
-##    sys.exit(0)
     
 #________________WRITE MODELS INTO DB
 
@@ -84,7 +51,54 @@ def model_writer(file_name, model):
 #________________SET INITIAL PARAMETERS
 
 inp_dic = {}
-inp     = genfromtxt('par.dat', delimiter='=', dtype=None)
+
+try:
+
+    inp = genfromtxt('par.dat', delimiter='=', dtype=None)
+
+except IOError:
+
+    with open('par.dat', 'w') as f:
+
+        f.write("""#
+#
+# INPUT FILE PARAMETER FOR 'PyGAVel' v0.1.
+#
+###################
+#
+SYNTHETIC_F        = True # Synthetic test enalbe/disable.
+REAL_MODEL_V       = 4.50, 5.20, 5.50, 5.80, 6.50
+REAL_MODEL_D       = 0.00, 4.00, 8.00,12.00,18.00
+REAL_MODEL_R       = 1.83, 1.80, 1.75, 1.70, 1.70
+#
+MODEL_VEL_MIN      = 4.00, 4.00, 4.00, 4.00, 4.00, 4.00, 4.00, 4.00, 4.00, 4.00
+MODEL_VEL_MAX      = 7.00, 7.00, 7.00, 7.00, 7.00, 7.00, 7.00, 7.00, 7.00, 7.00
+MODEL_DEP_MIN      = 0.00, 2.00, 4.00, 6.00, 8.00,10.00,12.00,14.00,16.00,18.00
+MODEL_DEP_MAX      = 0.00, 2.00, 4.00, 6.00, 8.00,10.00,12.00,14.00,16.00,18.00
+MODEL_VPS_MIN      = 1.83, 1.83, 1.80, 1.80, 1.75, 1.75, 1.70, 1.70, 1.70, 1.70
+MODEL_VPS_MAX      = 1.83, 1.83, 1.80, 1.80, 1.75, 1.75, 1.70, 1.70, 1.70, 1.70
+#
+GENSIZE            = 2
+POPSIZE            = 2
+MUT_R              = 0.10
+MUT_R_V            = 0.00 # Mutation decreasing rate. Different "MUT_R" for each generation. MUT_R=exp(-MUT_R_V*range(GENSIZE)). "0" = Disable.
+CRO_R              = 0.90
+NUM_ELTSM          = 1
+SEED               = 101
+NUM_CPU            = 4    # Set 0 to disable it.
+OBJ_FUNC           = 2    # 1: Hypo71, 2: Hypoelipse. Note to use POS_GRAD_V=True if Hypo71 is selected.
+POS_GRAD_V         = True
+DBASE              = noisy_vpvs_1
+RESET_DB           = True
+GA_SELECTOR        = T    # T:Turnoment, R:RouletWhell, N:Rank, M: T(75%)+ R(20%) and N(5%).
+#
+PLT_VP_RNG         = 3.00, 8.00
+PLT_DP_RNG         = 0.00, 25.0
+PLT_R_RNG          = 1.65, 1.85
+""")
+        print '\n+++ No "par.dat" file was found.'
+        print '+++ The parameter file "par.dat" has been created. Modify it and run again.'
+        sys.exit(0)
 
 for line in inp:
 
@@ -131,7 +145,6 @@ random_pool    = ascii_letters+digits
 mut_list       = exp(-arange(generationSize)*mut_rv)
 models_file    = open('models.dat','w')
 
-
 mut_list[mut_list<pMutation] = pMutation
 
 #________________OBJECTIVE FUNCTION
@@ -140,13 +153,9 @@ def eval_func(chromosome):
 
     ID = ''.join(sample(random_pool,6))
 
-    #__________SORT VELOCITIES IF REQUIRED
+    #__________SORT VELOCITIES IF POSITIVE GRADIENT IS REQUESTED
 
     if eval(pos_grad_v):
-
-        for _ in xrange(ga.getPopulation().popSize):
-
-            ga.getPopulation()[_].genomeList[:len(velocity_min)] = sorted(ga.getPopulation()[_].genomeList[:len(velocity_min)])
 
         chromosome[:len(velocity_min)] = sorted(chromosome[:len(velocity_min)])
         chromosome[:len(velocity_min)] = concatenate(([0],0<abs(where(diff(chromosome[:len(velocity_min)])<.05,1,0))))*.05+chromosome[:len(velocity_min)]
@@ -180,7 +189,7 @@ def eval_func(chromosome):
 
                 f.write('VELOCITY            %5.2f %5.2f %4.2f\n'%(v,d,r))
 
-        cmd = './fwd_problem.sh '+ID+' > /dev/null'
+        cmd = 'fwd_problem.sh '+ID+' > /dev/null'
         os.system(cmd)
         score = genfromtxt(ID+'misfit.val')
 
@@ -269,11 +278,11 @@ def run_ga():
     best_r  = best.genomeList[2*len(velocity_min):]
 
     print ''
-    print '+++ Best Raw Score=',best_rs
-    print '+++ FinalModel:\n'
-    print '+++ Velocity:\n',rnd(best_v,2)
-    print '+++ Depth:\n',rnd(best_d,2)
-    print '+++ VpVs:\n',rnd(best_r,2)
+    print '+++ Best Raw Score =',best_rs
+    print '+++ FinalModel :'
+    print '   +++ Velocity :',rnd(best_v,2)
+    print '   +++ Depth    :',rnd(best_d,2)
+    print '   +++ VpVs     :',rnd(best_r,2)
 
     return best, best_rs, best_v, best_d, best_r
 
@@ -296,7 +305,7 @@ def write_res(dbase_name, flag, best_rs, best_v, best_d, best_r):
 
 def plot(best, best_rs, best_v, best_d, best_r):
 
-    init_plotting()
+    init_plotting_isi(16,8)
 
     #___________________Plot final results
     #
@@ -317,7 +326,8 @@ def plot(best, best_rs, best_v, best_d, best_r):
         colors    = ['r','k','g']
         labels    = ['Min', 'Max', 'Best']
 
-    ax1 = plt.subplot(221)
+    ax = plt.subplot(121)
+    [i.set_linewidth(0.6) for i in ax.spines.itervalues()]
 
     for v,d,c,l in zip(vel_list, dep_list, colors, labels):
      
@@ -339,20 +349,21 @@ def plot(best, best_rs, best_v, best_d, best_r):
         xs.append(xs[-1])
         ys.append(max(inp_dic['PLT_DP_RNG']))
 
-        if l == 'Min': ax1.plot(array(xs),-array(ys), linewidth=3, color='k', linestyle='--', label=l)
-        elif l == 'Max': ax1.plot(array(xs),-array(ys), linewidth=3, color='k', linestyle='-.', label=l)
-        else: ax1.plot(array(xs),-array(ys), linewidth=3, color=c, linestyle='-', label=l)
+        if l == 'Min': ax.plot(array(xs),-array(ys), linewidth=1.5, color='k', linestyle='--', label=l)
+        elif l == 'Max': ax.plot(array(xs),-array(ys), linewidth=1.5, color='k', linestyle='-.', label=l)
+        else: ax.plot(array(xs),-array(ys), linewidth=1.5, color=c, linestyle='-', label=l)
    
-    ax1.set_xlabel('Velocity [km/s]')
-    ax1.set_ylabel('Depth [km]')
-    ax1.set_xlim(inp_dic['PLT_VP_RNG'])
-    ax1.set_ylim(-array(inp_dic['PLT_DP_RNG'])[::-1])
-    ax1.locator_params(axis = 'x', nbins = 6)
-    ax1.locator_params(axis = 'y', nbins = 6)
-    ax1.grid()
-    ax1.legend(loc=3)
+    ax.set_xlabel('Velocity [km/s]')
+    ax.set_ylabel('Depth [km]')
+    ax.set_xlim(inp_dic['PLT_VP_RNG'])
+    ax.set_ylim(-array(inp_dic['PLT_DP_RNG'])[::-1])
+    ax.locator_params(axis = 'x', nbins = 6)
+    ax.locator_params(axis = 'y', nbins = 6)
+    ax.grid()
+    ax.legend(loc=3)
 
-    ax2 = plt.subplot(224)
+    ax = plt.subplot(122)
+    [i.set_linewidth(0.6) for i in ax.spines.itervalues()]
 
     for r,d,c,l in zip(vpvs_list, dep_list, colors, labels):
      
@@ -374,23 +385,22 @@ def plot(best, best_rs, best_v, best_d, best_r):
         xs.append(xs[-1])
         ys.append(max(inp_dic['PLT_DP_RNG']))
 
-        if l == 'Min': ax2.plot(array(xs),-array(ys), linewidth=3, color='k', linestyle='--', label=l)
-        elif l == 'Max': ax2.plot(array(xs),-array(ys), linewidth=3, color='k', linestyle='-.', label=l)
-        else: ax2.plot(array(xs),-array(ys), linewidth=3, color=c, linestyle='-', label=l)
+        if l == 'Min': ax.plot(array(xs),-array(ys), linewidth=1.5, color='k', linestyle='--', label=l)
+        elif l == 'Max': ax.plot(array(xs),-array(ys), linewidth=1.5, color='k', linestyle='-.', label=l)
+        else: ax.plot(array(xs),-array(ys), linewidth=1.5, color=c, linestyle='-', label=l)
 
-    ax2.set_xlabel('VpVs [km/s]')
-    ax2.set_ylabel('Depth [km]')
-    ax2.set_xlim(inp_dic['PLT_R_RNG'])
-    ax2.set_ylim(-array(inp_dic['PLT_DP_RNG'])[::-1])
-    ax2.locator_params(axis = 'x', nbins = 6)
-    ax2.locator_params(axis = 'y', nbins = 6)
-    ax2.grid()
-    ax2.legend(loc=2)
+    ax.set_xlabel('VpVs [km/s]')
+    ax.set_ylabel('Depth [km]')
+    ax.set_xlim(inp_dic['PLT_R_RNG'])
+    ax.set_ylim(-array(inp_dic['PLT_DP_RNG'])[::-1])
+    ax.locator_params(axis = 'x', nbins = 6)
+    ax.locator_params(axis = 'y', nbins = 6)
+    ax.grid()
+    ax.legend(loc=2)
 
     plt.tight_layout()
-    plt.savefig(dbase_name+'.png')
+    plt.savefig(dbase_name+'.tiff',dpi=300)
     plt.close()
-
 
     #__________StdDev (V,D,R)
     
@@ -400,28 +410,32 @@ def plot(best, best_rs, best_v, best_d, best_r):
     best      = array([best_v,best_d,best_r]).flatten()
     tot_ax    = ceil(models.shape[1]/4.)
 
-    init_plotting()
-
+    init_plotting_isi(16,16)
+    plt.rcParams['xtick.labelsize'] = 6
+    plt.rcParams['ytick.labelsize'] = 6
+    plt.rcParams['axes.labelsize']  = 6
+    
     for par in range(models.shape[1]):
 
         ax = plt.subplot(tot_ax,4,par+1)
-        #ax.set_title('par=%d'%par, fontsize=14)
-        ax.text(0.97, 0.82, 'par=%d'%(par+1), fontsize=12,
-                transform=ax.transAxes, bbox={'facecolor':'w', 'alpha':0.5, 'pad':2},
-                horizontalalignment='right', verticalalignment='top')
+        [i.set_linewidth(0.6) for i in ax.spines.itervalues()]
+
+        ax.text(0.50, 1.18, 'Parameter-%d'%(par+1), fontsize=6,
+                transform=ax.transAxes,ha='center', va='top')
 
         mu    = mean(models[:,par])
         sig   = std(models[:,par])
         x     = linspace(mu-3*sig,mu+3*sig, 100)
-        a,b,c = plt.hist(models[:,par], 50, alpha=.6)
-        plt.vlines(best[par],0,max(a),color='r',zorder=20,linewidth=2)
-        plt.vlines(mu,0,max(a),color='y',zorder=20,linewidth=2)
+        data  = models[:,par]
+        a,b,c = plt.hist(data, 50, color='r', linewidth=0, alpha=.6)
+        plt.vlines(best[par],0,max(a),color='g',zorder=20,linewidth=2)
+        plt.vlines(mu,0,max(a),color='b',zorder=20,linewidth=2)
         plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-        plt.locator_params(axis = 'x', nbins = 4)
+        plt.locator_params(axis = 'x', nbins = 6)
         plt.locator_params(axis = 'y', nbins = 4)
 
-    plt.tight_layout()
-    plt.savefig('models_stat.png')
+    plt.tight_layout(True)
+    plt.savefig('models_stat.tiff',dpi=300)
     plt.close()
 
 #________________DO
@@ -441,7 +455,7 @@ if mut_rv > 0.0:
     ax1.locator_params(axis = 'x', nbins = 6)
     ax1.locator_params(axis = 'y', nbins = 6)
     ax1.grid()
-    plt.savefig(dbase_name+'_mut_r.png')
+    plt.savefig(dbase_name+'_mut_r.tiff',dpi=300)
     plt.close()
 
 best, best_rs, best_v, best_d, best_r = run_ga()
